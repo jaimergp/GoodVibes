@@ -92,7 +92,8 @@ class Logger:
 
    def Fatal(self, message):
       print(message+"\n")
-      self.log.write(message + "\n"); self.Finalize()
+      self.log.write(message + "\n")
+      self.Finalize()
       sys.exit(1)
 
    def Finalize(self):
@@ -123,7 +124,9 @@ class getoutData:
         program = 'none'
 
         for line in data:
-           if line.find("Gaussian") > -1: program = "Gaussian"; break
+           if line.find("Gaussian") > -1:
+               program = "Gaussian"
+               break
 
         def getATOMTYPES(self, outlines, program):
             if program == "Gaussian":
@@ -488,11 +491,12 @@ def main():
     parser.add_option("--ti", dest="temperature_interval", action="store", help="initial temp, final temp, step size (K)", default=False, metavar="TI")
     parser.add_option("--ci", dest="conc_interval", action="store", help="initial conc, final conc, step size (mol/l)", default=False, metavar="CI")
     parser.add_option("--xyz", dest="xyz", action="store_true", help="write Cartesians to an xyz file (default False)", default=False, metavar="XYZ")
-    (options, args) = parser.parse_args()
+    options, args = parser.parse_args()
     options.QH = options.QH.lower() # case insensitive
 
     # if necessary create an xyz file for Cartesians
-    if options.xyz == True: xyz = XYZout("Goodvibes","xyz", "output")
+    if options.xyz == True:
+        xyz = XYZout("Goodvibes","xyz", "output")
 
     # Get the filenames from the command line prompt
     files = []
@@ -503,8 +507,8 @@ def main():
                     for file in glob(elem):
                         if options.spc == False or options.spc == 'link':
                             files.append(file)
-                        else:
-                            if file.find('_'+options.spc+".") == -1: files.append(file)
+                        elif file.find('_'+options.spc+".") == -1:
+                            files.append(file)
             except IndexError:
                 pass
 
@@ -516,7 +520,8 @@ def main():
             log.Write("   Temperature = "+str(options.temperature)+" Kelvin")
         # If not at standard temp, need to correct the molarity of 1 atmosphere (assuming Pressure is still 1 atm)
         if options.conc == 0.040876:
-            options.conc = ATMOS/(GAS_CONSTANT*options.temperature); log.Write("   Pressure = 1 atm")
+            options.conc = ATMOS/(GAS_CONSTANT*options.temperature)
+            log.Write("   Pressure = 1 atm")
         else:
             log.Write("   Concentration = "+str(options.conc)+" mol/l")
 
@@ -546,9 +551,11 @@ def main():
         # summary of the quasi-harmonic treatment; print out the relevant reference
         log.Write("\n\n   Quasi-harmonic treatment: frequency cut-off value of "+str(options.freq_cutoff)+" wavenumbers will be applied")
         if options.QH == "grimme":
-            log.Write("\n   QH = Grimme: Using a mixture of RRHO and Free-rotor vibrational entropies"); qh_ref = grimme_ref
+            log.Write("\n   QH = Grimme: Using a mixture of RRHO and Free-rotor vibrational entropies")
+            qh_ref = grimme_ref
         elif options.QH == "truhlar":
-            log.Write("\n   QH = Truhlar: Using an RRHO treatment where low frequencies are adjusted to the cut-off value"); qh_ref = truhlar_ref
+            log.Write("\n   QH = Truhlar: Using an RRHO treatment where low frequencies are adjusted to the cut-off value")
+            qh_ref = truhlar_ref
         else:
             log.Fatal("\n   FATAL ERROR: Unknown quasi-harmonic model "+options.QH+" specified (QH must = grimme or truhlar)")
         log.Write("\n   REF: " + qh_ref)
