@@ -77,9 +77,9 @@ periodictable = ["", "H", "He", "Li", "Be", "B", "C", "N", "O", "F", "Ne", "Na",
 
 
 def elementID(massno):
-    if massno < len(periodictable):
+    try:
         return periodictable[massno]
-    else:
+    except IndexError:
         return "XX"
 
 
@@ -124,21 +124,22 @@ class XYZout:
 #Read molecule data from a compchem output file
 class getoutData:
     def __init__(self, file):
-        with open(file) as f: data = f.readlines()
+        with open(file) as f:
+            data = f.readlines()
         program = 'none'
 
         for line in data:
-           if line.find("Gaussian") > -1:
+           if "Gaussian" in line:
                program = "Gaussian"
                break
 
         def getATOMTYPES(self, outlines, program):
             if program == "Gaussian":
                 for i, line in enumerate(outlines):
-                    if line.find("Input orientation") >-1 or line.find("Standard orientation") > -1:
+                    if "Input orientation" in line or "Standard orientation" in line:
                         self.ATOMTYPES, self.CARTESIANS, self.ATOMICTYPES, carts = [], [], [], outlines[i+5:]
                         for j, line in enumerate(carts):
-                            if line.find("-------") > -1:
+                            if "-------" in line :
                                 break
                             self.ATOMTYPES.append(elementID(int(line.split()[1])))
                             self.ATOMICTYPES.append(int(line.split()[2]))
@@ -164,20 +165,19 @@ def sp_energy(file):
         raise ValueError("File {} does not exist".format(file))
 
     for line in data:
-        if line.find("Gaussian") > -1:
+        if "Gaussian" in line:
             program = "Gaussian"
             break
-        if line.find("* O   R   C   A *") > -1:
+        if "* O   R   C   A *" in line:
             program = "Orca"
             break
 
     for line in data:
-        if program == "Gaussian":
-            if line.strip().startswith('SCF Done:'):
-                spe = float(line.strip().split()[4])
-        if program == "Orca":
-            if line.strip().startswith('FINAL SINGLE POINT ENERGY'):
-                spe = float(line.strip().split()[4])
+        line = line.strip()
+        if program == "Gaussian" and line.startswith('SCF Done:'):
+            spe = float(line.split()[4])
+        elif program == "Orca" and line.startswith('FINAL SINGLE POINT ENERGY'):
+            spe = float(line.split()[4])
     return spe
 
 
@@ -187,9 +187,10 @@ def level_of_theory(file):
         data = f.readlines()
     level, bs = 'none', 'none'
     for line in data:
-        if line.strip().find('\\Freq\\') > -1:
+        line = line.strip()
+        if '\\Freq\\' in line:
             try:
-                level, bs = (line.strip().split("\\")[4:6])
+                level, bs = (line.split("\\")[4:6])
             except IndexError:
                 pass
 
@@ -377,9 +378,9 @@ class calc_bbe:
         #count number of links
         for line in g_output:
             # only read first link + freq not other link jobs
-            if line.find("Normal termination") != -1:
+            if "Normal termination" in line :
                 linkmax += 1
-            if line.find('Frequencies --') != -1:
+            if 'Frequencies --' in line :
                 freqloc = linkmax
 
         # Iterate over output
@@ -387,52 +388,55 @@ class calc_bbe:
             freqloc = len(g_output)
         for line in g_output:
             # link counter
-            if line.find("Normal termination")!= -1:
+            line = line.strip()
+            fields = line.split()
+            if "Normal termination" in line :
                 link += 1
                 # reset frequencies if in final freq link
-                if link == freqloc: frequency_wn = []
+                if link == freqloc:
+                    frequency_wn = []
             # if spc specified will take last Energy from file, otherwise will break after freq calc
             if link > freqloc:
                 break
 
             # Iterate over output: look out for low frequencies
-            if line.strip().startswith('Frequencies -- '):
+            if line.startswith('Frequencies -- '):
                 for i in range(2,5):
                     try:
-                        x = float(line.strip().split()[i])
+                        x = float(fields[i])
                         #  only deal with real frequencies
                         if x > 0.00: frequency_wn.append(x)
                     except IndexError:
                         pass
 
             # For QM calculations look for SCF energies, last one will be the optimized energy
-            if line.strip().startswith('SCF Done:'):
-                self.scf_energy = float(line.strip().split()[4])
+            if line.startswith('SCF Done:'):
+                self.scf_energy = float(fields[4])
             # For MP2 calculations replace with EUMP2
-            if line.strip().find('EUMP2 =') > -1:
-                self.scf_energy = float((line.strip().split()[5]).replace('D', 'E'))
+            if 'EUMP2 =' in line:
+                self.scf_energy = float((fields[5]).replace('D', 'E'))
             # For ONIOM calculations use the extrapolated value rather than SCF value
-            if line.strip().find("ONIOM: extrapolated energy") > -1:
-                self.scf_energy = (float(line.strip().split()[4]))
+            if "ONIOM: extrapolated energy" in line:
+                self.scf_energy = (float(fields[4]))
             # For Semi-empirical or Molecular Mechanics calculations
-            if line.strip().find("Energy= ") > -1 and line.strip().find("Predicted")==-1 and line.strip().find("Thermal")==-1:
-                self.scf_energy = (float(line.strip().split()[1]))
+            if "Energy= " in line and "Predicted" not in line and "Thermal" not in line:
+                self.scf_energy = (float(fields[1]))
             # look for thermal corrections, paying attention to point group symmetry
-            if line.strip().startswith('Zero-point correction='):
-                self.zero_point_corr = float(line.strip().split()[2])
-            if line.strip().find('Multiplicity') > -1:
-                mult = float(line.strip().split()[5])
-            if line.strip().startswith('Molecular mass:'):
-                molecular_mass = float(line.strip().split()[2])
-            if line.strip().startswith('Rotational symmetry number'):
-                symmno = int((line.strip().split()[3]).split(".")[0])
-            if line.strip().startswith('Full point group'):
-                if line.strip().split()[3] == 'D*H' or line.strip().split()[3] == 'C*V':
+            if line.startswith('Zero-point correction='):
+                self.zero_point_corr = float(fields[2])
+            if 'Multiplicity' in line:
+                mult = float(fields[5])
+            if line.startswith('Molecular mass:'):
+                molecular_mass = float(fields[2])
+            if line.startswith('Rotational symmetry number'):
+                symmno = int((fields[3]).split(".")[0])
+            if line.startswith('Full point group'):
+                if fields[3] == 'D*H' or fields[3] == 'C*V':
                     linear_mol = 1
-            if line.strip().startswith('Rotational temperature '):
-                rotemp = [float(line.strip().split()[3])]
-            if line.strip().startswith('Rotational temperatures'):
-                rotemp = [float(line.strip().split()[3]), float(line.strip().split()[4]), float(line.strip().split()[5])]
+            if line.startswith('Rotational temperature '):
+                rotemp = [float(fields[3])]
+            if line.startswith('Rotational temperatures'):
+                rotemp = [float(fields[3]), float(fields[4]), float(fields[5])]
 
         # skip the next steps if unable to parse the frequencies or zpe from the output file
         if hasattr(self, "zero_point_corr"):
