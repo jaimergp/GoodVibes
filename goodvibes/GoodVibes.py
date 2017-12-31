@@ -41,9 +41,11 @@ import sys
 import textwrap
 import time
 from glob import glob
-from optparse import OptionParser
+from argparse import ArgumentParser
 
 from .vib_scale_factors import scaling_data, scaling_refs
+
+__version__ = "2.0.1"
 
 # PHYSICAL CONSTANTS
 GAS_CONSTANT = 8.3144621
@@ -56,8 +58,7 @@ ATMOS = 101.325
 # UNIT CONVERSION
 J_TO_AU = 4.184 * 627.509541 * 1000.0
 
-# version number
-__version__ = "2.0.1"
+SUPPORTED_EXTENSIONS = ('.out', '.log')
 STARS = "   " + "*" * 128
 
 # some literature references
@@ -503,28 +504,29 @@ def main():
     log = Logger("Goodvibes","dat", "output")
 
     # get command line inputs. Use -h to list all possible arguments and default values
-    parser = OptionParser(usage="Usage: %prog [options] <input1>.log <input2>.log ...")
-    parser.add_option("-t", dest="temperature", action="store", default="298.15", type="float", metavar="TEMP",
+    parser = ArgumentParser()
+    parser.add_argument("-t", dest="temperature", default=298.15, type=float, metavar="TEMP",
         help="temperature (K) (default 298.15)" )
-    parser.add_option("-q", dest="QH", action="store", default="grimme", type="string", metavar="QH",
+    parser.add_argument("-q", dest="QH", default="grimme", type=str, metavar="QH", choices=('grimme', 'truhlar'),
         help="Type of quasi-harmonic correction (Grimme or Truhlar) (default Grimme)" )
-    parser.add_option("-f", dest="freq_cutoff", action="store", default="100.0", type="float", metavar="FREQ_CUTOFF",
+    parser.add_argument("-f", dest="freq_cutoff", default=100.0, type=float, metavar="FREQ_CUTOFF",
         help="Cut-off frequency (wavenumbers) (default = 100)")
-    parser.add_option("-c", dest="conc", action="store", default="0.040876", type="float", metavar="CONC",
+    parser.add_argument("-c", dest="conc", default=0.040876, type=float, metavar="CONC",
         help="concentration (mol/l) (default 1 atm)")
-    parser.add_option("-v", dest="freq_scale_factor", action="store", default=False, type="float", metavar="SCALE_FACTOR",
+    parser.add_argument("-v", dest="freq_scale_factor", default=1.0, type=float, metavar="SCALE_FACTOR",
         help="Frequency scaling factor (default 1)")
-    parser.add_option("-s", dest="solv", action="store", default="none", type="string", metavar="SOLV",
-        help="Solvent (H2O, toluene, DMF, AcOH, chloroform) (default none)")
-    parser.add_option("--spc", dest="spc", action="store", type="string", default=False, metavar="SPC",
+    parser.add_argument("-s", dest="solv", default="none", type=str, metavar="SOLV",
+        choices=('H2O', 'toluene', 'DMF', 'AcOH', 'chloroform', 'none'),
+        help="Solvent (H2O, toluene, DMF, AcOH, chloroform, none) (default none)")
+    parser.add_argument("--spc", dest="spc", type=str, default=False, metavar="SPC",
         help="Indicates single point corrections (default False)")
-    parser.add_option("--ti", dest="temperature_interval", action="store", default=False, metavar="TI",
+    parser.add_argument("--ti", dest="temperature_interval", default=False, metavar="TI",
          help="initial temp, final temp, step size (K)")
-    parser.add_option("--ci", dest="conc_interval", action="store", default=False, metavar="CI",
+    parser.add_argument("--ci", dest="conc_interval", default=False, metavar="CI",
         help="initial conc, final conc, step size (mol/l)")
-    parser.add_option("--xyz", dest="xyz", action="store_true", default=False, metavar="XYZ",
+    parser.add_argument("--xyz", dest="xyz", action="store_true", default=False,
         help="write Cartesians to an xyz file (default False)")
-    options, args = parser.parse_args()
+    options, args = parser.parse_known_args()
     options.QH = options.QH.lower() # case insensitive
 
     # if necessary create an xyz file for Cartesians
@@ -533,10 +535,9 @@ def main():
 
     # Get the filenames from the command line prompt
     files = []
-    if len(sys.argv) > 1:
-        for elem in sys.argv[1:]:
+    for elem in args:
             try:
-                if os.path.splitext(elem)[1] in [".out", ".log"]:
+            if os.path.splitext(elem)[1] in SUPPORTED_EXTENSIONS:
                     for file in glob(elem):
                         if options.spc is False or options.spc == 'link':
                             files.append(file)
