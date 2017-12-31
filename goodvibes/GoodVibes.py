@@ -412,32 +412,32 @@ class calc_bbe:
                         pass
 
             # For QM calculations look for SCF energies, last one will be the optimized energy
-            if line.startswith('SCF Done:'):
+            elif line.startswith('SCF Done:'):
                 self.scf_energy = float(fields[4])
             # For MP2 calculations replace with EUMP2
-            if 'EUMP2 =' in line:
+            elif 'EUMP2 =' in line:
                 self.scf_energy = float((fields[5]).replace('D', 'E'))
             # For ONIOM calculations use the extrapolated value rather than SCF value
-            if "ONIOM: extrapolated energy" in line:
+            elif "ONIOM: extrapolated energy" in line:
                 self.scf_energy = (float(fields[4]))
             # For Semi-empirical or Molecular Mechanics calculations
-            if "Energy= " in line and "Predicted" not in line and "Thermal" not in line:
+            elif "Energy= " in line and "Predicted" not in line and "Thermal" not in line:
                 self.scf_energy = (float(fields[1]))
             # look for thermal corrections, paying attention to point group symmetry
-            if line.startswith('Zero-point correction='):
+            elif line.startswith('Zero-point correction='):
                 self.zero_point_corr = float(fields[2])
-            if 'Multiplicity' in line:
+            elif 'Multiplicity' in line:
                 mult = float(fields[5])
-            if line.startswith('Molecular mass:'):
+            elif line.startswith('Molecular mass:'):
                 molecular_mass = float(fields[2])
-            if line.startswith('Rotational symmetry number'):
+            elif line.startswith('Rotational symmetry number'):
                 symmno = int((fields[3]).split(".")[0])
-            if line.startswith('Full point group'):
+            elif line.startswith('Full point group'):
                 if fields[3] == 'D*H' or fields[3] == 'C*V':
                     linear_mol = 1
-            if line.startswith('Rotational temperature '):
+            elif line.startswith('Rotational temperature '):
                 rotemp = [float(fields[3])]
-            if line.startswith('Rotational temperatures'):
+            elif line.startswith('Rotational temperatures'):
                 rotemp = [float(fields[3]), float(fields[4]), float(fields[5])]
 
         # skip the next steps if unable to parse the frequencies or zpe from the output file
