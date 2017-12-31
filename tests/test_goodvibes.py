@@ -60,7 +60,7 @@ from conftest import datapath
 def test_all(path, QH, temp, E, ZPE, H, TS, TqhS, G, qhG):
     # Defaults, no temp interval, no conc interval
     path = datapath(path)
-    conc = GV.atmos / (GV.GAS_CONSTANT * temp)
+    conc = GV.ATMOS / (GV.GAS_CONSTANT * temp)
     freq_cutoff, freq_scale_factor, solv, spc = 100.0, 1.0, 'none', False
     bbe = GV.calc_bbe(path, QH, freq_cutoff, temp, conc, freq_scale_factor, solv, spc)
     precision = 6 # if temp == 298.15 else 4e-4
@@ -80,7 +80,7 @@ def test_all(path, QH, temp, E, ZPE, H, TS, TqhS, G, qhG):
 ])
 def test_temperature_corrections(QH, E, ZPE, H, TS, TqhS, G, qhG):
     temp = 200
-    conc = GV.atmos / (GV.GAS_CONSTANT * temp)
+    conc = GV.ATMOS / (GV.GAS_CONSTANT * temp)
     freq_cutoff, freq_scale_factor, solv, spc = 100.0, 1.0, 'none', False
     bbe298 = GV.calc_bbe(datapath('Al_298K.out'), QH, freq_cutoff, temp, conc, freq_scale_factor, solv, spc)
     bbe400 = GV.calc_bbe(datapath('Al_400K.out'), QH, freq_cutoff, temp, conc, freq_scale_factor, solv, spc)
@@ -100,7 +100,7 @@ def test_single_point_correction():
     E_link_spc, E_spc, ZPE_spc, H_link_spc, TS_spc, TqhS_spc, GT_link_spc, qhGT_link_spc = \
         -79.858399, -79.830421, 0.075238, -79.778748, 0.027523, 0.027525, -79.806271, -79.806273
     temp = 298.15
-    conc = GV.atmos / (GV.GAS_CONSTANT * temp)
+    conc = GV.ATMOS / (GV.GAS_CONSTANT * temp)
     QH, freq_cutoff, freq_scale_factor, solv, spc = 'grimme', 100.0, 1.0, 'none', 'link'
     precision = 6
 
