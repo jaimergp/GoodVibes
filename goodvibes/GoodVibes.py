@@ -140,14 +140,15 @@ class getoutData:
                     if "Input orientation" in line or "Standard orientation" in line:
                         self.ATOMTYPES, self.CARTESIANS, self.ATOMICTYPES, carts = [], [], [], outlines[i+5:]
                         for j, line in enumerate(carts):
-                            if "-------" in line :
+                            fields = line.split()
+                            if "-------" in line:
                                 break
-                            self.ATOMTYPES.append(elementID(int(line.split()[1])))
-                            self.ATOMICTYPES.append(int(line.split()[2]))
-                            if len(line.split()) > 5:
-                                self.CARTESIANS.append([float(line.split()[3]),float(line.split()[4]),float(line.split()[5])])
+                            self.ATOMTYPES.append(elementID(int(fields[1])))
+                            self.ATOMICTYPES.append(int(fields[2]))
+                            if len(fields) > 5:
+                                self.CARTESIANS.append([float(fields[3]),float(fields[4]),float(fields[5])])
                             else:
-                                self.CARTESIANS.append([float(line.split()[2]),float(line.split()[3]),float(line.split()[4])])
+                                self.CARTESIANS.append([float(fields[2]),float(fields[3]),float(fields[4])])
 
         getATOMTYPES(self, data, program)
 
@@ -156,12 +157,12 @@ class getoutData:
 def sp_energy(file):
     spe, program, data = 'none', 'none', []
 
-    if os.path.exists(os.path.splitext(file)[0]+'.log'):
-        with open(os.path.splitext(file)[0]+'.log') as f:
-            data = f.readlines()
-    elif os.path.exists(os.path.splitext(file)[0]+'.out'):
-        with open(os.path.splitext(file)[0]+'.out') as f:
-            data = f.readlines()
+    sanitized_path = os.path.splitext(file)[0]
+    for ext in SUPPORTED_EXTENSIONS:
+        if os.path.exists(sanitized_path + ext):
+            with open(sanitized_path + ext) as f:
+                data = f.readlines()
+            break
     else:
         raise ValueError("File {} does not exist".format(file))
 
@@ -521,7 +522,7 @@ def main():
     parser.add_argument("--spc", dest="spc", type=str, default=False, metavar="SPC",
         help="Indicates single point corrections (default False)")
     parser.add_argument("--ti", dest="temperature_interval", default=False, metavar="TI",
-         help="initial temp, final temp, step size (K)")
+        help="initial temp, final temp, step size (K)")
     parser.add_argument("--ci", dest="conc_interval", default=False, metavar="CI",
         help="initial conc, final conc, step size (mol/l)")
     parser.add_argument("--xyz", dest="xyz", action="store_true", default=False,
@@ -536,15 +537,15 @@ def main():
     # Get the filenames from the command line prompt
     files = []
     for elem in args:
-            try:
+        try:
             if os.path.splitext(elem)[1] in SUPPORTED_EXTENSIONS:
-                    for file in glob(elem):
-                        if options.spc is False or options.spc == 'link':
-                            files.append(file)
-                        elif file.find('_'+options.spc+".") == -1:
-                            files.append(file)
-            except IndexError:
-                pass
+                for file in glob(elem):
+                    if options.spc is False or options.spc == 'link':
+                        files.append(file)
+                    elif file.find('_'+options.spc+".") == -1:
+                        files.append(file)
+        except IndexError:
+            pass
 
         # Start printing results
         start = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
