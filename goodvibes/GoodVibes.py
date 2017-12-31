@@ -366,7 +366,7 @@ class calc_bbe:
             g_output = f.readlines()
 
         # read any single point energies if requested
-        if spc != False and spc != 'link':
+        if spc is not False and spc != 'link':
             try:
                 self.sp_energy = sp_energy(file.split('.')[0]+'_'+spc+'.'+file.split('.')[1])
             except IOError:
@@ -524,7 +524,7 @@ def main():
     options.QH = options.QH.lower() # case insensitive
 
     # if necessary create an xyz file for Cartesians
-    if options.xyz == True:
+    if options.xyz is True:
         xyz = XYZout("Goodvibes", "xyz", "output")
 
     # Get the filenames from the command line prompt
@@ -534,7 +534,7 @@ def main():
             try:
                 if os.path.splitext(elem)[1] in [".out", ".log"]:
                     for file in glob(elem):
-                        if options.spc == False or options.spc == 'link':
+                        if options.spc is False or options.spc == 'link':
                             files.append(file)
                         elif file.find('_'+options.spc+".") == -1:
                             files.append(file)
@@ -545,7 +545,7 @@ def main():
         start = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
         log.Write("   GoodVibes v" + __version__ + " " + start + "\n   REF: " + goodvibes_ref +"\n\n")
 
-        if options.temperature_interval == False:
+        if options.temperature_interval is False:
             log.Write("   Temperature = "+str(options.temperature)+" Kelvin")
         # If not at standard temp, need to correct the molarity of 1 atmosphere (assuming Pressure is still 1 atm)
         if options.conc == 0.040876:
@@ -555,20 +555,20 @@ def main():
             log.Write("   Concentration = "+str(options.conc)+" mol/l")
 
         # attempt to automatically obtain frequency scale factor. Requires all outputs to be same level of theory
-        if options.freq_scale_factor == False:
+        if options.freq_scale_factor is False:
             l_o_t = [level_of_theory(file) for file in files]
             def all_same(items):
                 return all(x == items[0] for x in items)
 
-            if all_same(l_o_t) == True:
+            if all_same(l_o_t) is True:
                 for scal in scaling_data: # search through database of scaling factors
                     if l_o_t[0].upper().find(scal['level'].upper()) > -1 or l_o_t[0].upper().find(scal['level'].replace("-","").upper()) > -1:
                         options.freq_scale_factor = scal['zpe_fac']; ref = scaling_refs[scal['zpe_ref']]
                         log.Write("\n\n   " + "Found vibrational scaling factor for " + l_o_t[0] + " level of theory" + "\n   REF: " + ref)
-            elif all_same(l_o_t) == False:
+            elif all_same(l_o_t) is False:
                 log.Write("\n   " + (textwrap.fill("CAUTION: different levels of theory found - " + '|'.join(l_o_t), 128, subsequent_indent='   ')))
 
-        if options.freq_scale_factor == False:
+        if options.freq_scale_factor is False:
             options.freq_scale_factor = 1.0 # if no scaling factor is found use 1.0
         log.Write("\n   Frequency scale factor "+str(options.freq_scale_factor))
 
@@ -594,12 +594,12 @@ def main():
             log.Write("\n   Link job: combining final single point energy with thermal corrections")
 
     # Standard mode: tabulate thermochemistry ouput from file(s) at a single temperature and concentration
-    if options.temperature_interval == False and options.conc_interval == False:
-        if options.spc == False:
+    if options.temperature_interval is False and options.conc_interval is False:
+        if options.spc is False:
             log.Write("\n\n   " + '{:<39} {:>13} {:>10} {:>13} {:>10} {:>10} {:>13} {:>13}'.format("Structure", "E", "ZPE", "H", "T.S", "T.qh-S", "G(T)", "qh-G(T)"))
         else:
             log.Write("\n\n   " + '{:<39} {:>13} {:>13} {:>10} {:>13} {:>10} {:>10} {:>13} {:>13}'.format("Structure", "E_"+options.spc, "E", "ZPE", "H_"+options.spc, "T.S", "T.qh-S", "G(T)_"+options.spc, "qh-G(T)_"+options.spc))
-        if options.spc == False:
+        if options.spc is False:
             log.Write("\n"+STARS+"\n")
         else:
             log.Write("\n"+STARS+'*'*14+"\n")
@@ -607,7 +607,7 @@ def main():
         for file in files: # loop over the output files and compute thermochemistry
             bbe = calc_bbe(file, options.QH, options.freq_cutoff, options.temperature, options.conc, options.freq_scale_factor, options.solv, options.spc)
 
-            if options.xyz == True: # write Cartesians
+            if options.xyz is True: # write Cartesians
                 xyzdata = getoutData(file)
                 xyz.Writetext(str(len(xyzdata.ATOMTYPES)))
                 if hasattr(bbe, "scf_energy"):
@@ -618,7 +618,7 @@ def main():
                     xyz.Writecoords(xyzdata.ATOMTYPES, xyzdata.CARTESIANS)
 
             log.Write("\no  "+'{:<39}'.format(os.path.splitext(os.path.basename(file))[0]))
-            if options.spc != False:
+            if options.spc is not False:
                 try:
                     log.Write(' {:13.6f}'.format(bbe.sp_energy))
                 except ValueError:
@@ -630,13 +630,13 @@ def main():
             else:
                 if all(getattr(bbe, attrib) for attrib in ["enthalpy", "entropy", "qh_entropy", "gibbs_free_energy", "qh_gibbs_free_energy"]):
                     log.Write(' {:10.6f} {:13.6f} {:10.6f} {:10.6f} {:13.6f} {:13.6f}'.format(bbe.zpe, bbe.enthalpy, (options.temperature * bbe.entropy), (options.temperature * bbe.qh_entropy), bbe.gibbs_free_energy, bbe.qh_gibbs_free_energy))
-        if options.spc == False:
+        if options.spc is False:
             log.Write("\n"+STARS+"\n")
         else:
             log.Write("\n"+STARS+'*'*14+"\n")
 
     #Running a variable temperature analysis of the enthalpy, entropy and the free energy
-    elif options.temperature_interval != False:
+    elif options.temperature_interval is not False:
         temperature_interval = [float(temp) for temp in options.temperature_interval.split(',')]
         # If no temperature step was defined, divide the region into 10
         if len(temperature_interval) == 2:
@@ -663,7 +663,7 @@ def main():
 
     # close the log
     log.Finalize()
-    if options.xyz == True:
+    if options.xyz is True:
         xyz.Finalize()
 
 
