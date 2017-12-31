@@ -58,7 +58,7 @@ ATMOS = 101.325
 # UNIT CONVERSION
 J_TO_AU = 4.184 * 627.509541 * 1000.0
 
-SUPPORTED_EXTENSIONS = ('.out', '.log')
+SUPPORTED_EXTENSIONS = set(('.out', '.log'))
 STARS = "   " + "*" * 128
 
 # some literature references
@@ -527,13 +527,19 @@ def main():
         help="initial conc, final conc, step size (mol/l)")
     parser.add_argument("--xyz", dest="xyz", action="store_true", default=False,
         help="write Cartesians to an xyz file (default False)")
+    parser.add_argument("--custom_ext", type=str, default='',
+        help="List of additional file extensions to support, separated by commas (ie, '.qfi,.gaussian'). "
+             "It can also be specified with environment variable GOODVIBES_CUSTOM_EXT")
     options, args = parser.parse_known_args()
     options.QH = options.QH.lower() # case insensitive
 
     # if necessary create an xyz file for Cartesians
     if options.xyz is True:
         xyz = XYZout("Goodvibes", "xyz", "output")
-
+    if options.custom_ext or os.environ.get('GOODVIBES_CUSTOM_EXT', ''):
+        custom_extensions = options.custom_ext.split(',') + os.environ.get('GOODVIBES_CUSTOM_EXT', '').split(',')
+        for ext in custom_extensions:
+            SUPPORTED_EXTENSIONS.add(ext.strip())
     # Get the filenames from the command line prompt
     files = []
     for elem in args:
