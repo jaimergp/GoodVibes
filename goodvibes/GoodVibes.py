@@ -75,29 +75,32 @@ periodictable = ["", "H", "He", "Li", "Be", "B", "C", "N", "O", "F", "Ne", "Na",
     "Am", "Cm", "Bk", "Cf", "Es", "Fm", "Md", "No", "Lr", "Rf", "Db", "Sg", "Bh", "Hs", "Mt", "Ds",
     "Rg", "Uub", "Uut", "Uuq", "Uup", "Uuh", "Uus", "Uuo"]
 
+
 def elementID(massno):
     if massno < len(periodictable):
         return periodictable[massno]
     else:
         return "XX"
 
- # Enables output to terminal and to text file
+
+# Enables output to terminal and to text file
 class Logger:
-   def __init__(self, filein, suffix, append):
-      self.log = open(filein+"_"+append+"."+suffix, 'w' )
+    def __init__(self, filein, suffix, append):
+        self.log = open(filein+"_"+append+"."+suffix, 'w' )
 
-   def Write(self, message):
-      print(message, end='')
-      self.log.write(message)
+    def Write(self, message):
+        print(message, end='')
+        self.log.write(message)
 
-   def Fatal(self, message):
-      print(message+"\n")
-      self.log.write(message + "\n")
-      self.Finalize()
-      sys.exit(1)
+    def Fatal(self, message):
+        print(message+"\n")
+        self.log.write(message + "\n")
+        self.Finalize()
+        sys.exit(1)
 
-   def Finalize(self):
-      self.log.close()
+    def Finalize(self):
+        self.log.close()
+
 
 # Enables output of optimized coordinates to a single xyz-formatted file
 class XYZout:
@@ -116,6 +119,7 @@ class XYZout:
 
     def Finalize(self):
         self.xyz.close()
+
 
 #Read molecule data from a compchem output file
 class getoutData:
@@ -144,6 +148,7 @@ class getoutData:
                                 self.CARTESIANS.append([float(line.split()[2]),float(line.split()[3]),float(line.split()[4])])
 
         getATOMTYPES(self, data, program)
+
 
 # Read gaussian output for a single point energy
 def sp_energy(file):
@@ -175,6 +180,7 @@ def sp_energy(file):
                 spe = float(line.strip().split()[4])
     return spe
 
+
 # Read output for the level of theory and basis set used
 def level_of_theory(file):
     with open(file) as f:
@@ -192,6 +198,7 @@ def level_of_theory(file):
             level = level[1:]
     return level+"/"+bs
 
+
 # translational energy evaluation (depends on temperature)
 def calc_translational_energy(temperature):
     """
@@ -201,6 +208,7 @@ def calc_translational_energy(temperature):
     """
     energy = 1.5 * GAS_CONSTANT * temperature
     return energy
+
 
 # rotational energy evaluation (depends on molecular shape and temperature)
 def calc_rotational_energy(zpe, symmno, temperature, linear):
@@ -216,6 +224,7 @@ def calc_rotational_energy(zpe, symmno, temperature, linear):
         energy = 1.5 * GAS_CONSTANT * temperature
     return energy
 
+
 # vibrational energy evaluation (depends on frequencies, temperature and scaling factor: default = 1.0)
 def calc_vibrational_energy(frequency_wn, temperature, freq_scale_factor):
     """
@@ -228,6 +237,7 @@ def calc_vibrational_energy(frequency_wn, temperature, freq_scale_factor):
                 for entry in factor]
     return sum(energy)
 
+
 # vibrational Zero point energy evaluation (depends on frequencies and scaling factor: default = 1.0)
 def calc_zeropoint_energy(frequency_wn, freq_scale_factor):
     """
@@ -238,6 +248,7 @@ def calc_zeropoint_energy(frequency_wn, freq_scale_factor):
                 for freq in frequency_wn]
     energy = [0.5 * entry * GAS_CONSTANT for entry in factor]
     return sum(energy)
+
 
 # Computed the amount of accessible free space (ml per L) in solution accesible to a solute immersed in bulk solvent, i.e. this is the volume not occupied by solvent molecules, calculated using literature values for molarity and B3LYP/6-31G* computed molecular volumes.
 def get_free_space(solv):
@@ -263,6 +274,7 @@ def get_free_space(solv):
         freespace = 1000.0
     return freespace
 
+
 # translational entropy evaluation (depends on mass, concentration, temperature, solvent free space: default = 1000.0)
 def calc_translational_entropy(molecular_mass, conc, temperature, solv):
     """
@@ -275,6 +287,7 @@ def calc_translational_entropy(molecular_mass, conc, temperature, solv):
     entropy = GAS_CONSTANT * (2.5 + math.log(lmda**3 / Ndens))
     return entropy
 
+
 # electronic entropy evaluation (depends on multiplicity)
 def calc_electronic_entropy(multiplicity):
     """
@@ -283,6 +296,7 @@ def calc_electronic_entropy(multiplicity):
     """
     entropy = GAS_CONSTANT * (math.log(multiplicity))
     return entropy
+
 
 # rotational entropy evaluation (depends on molecular shape and temp.)
 def calc_rotational_entropy(zpe, linear, symmno, rotemp, temperature):
@@ -306,6 +320,7 @@ def calc_rotational_entropy(zpe, linear, symmno, rotemp, temperature):
             entropy = GAS_CONSTANT * (math.log(qrot / symmno) + 1.5)
     return entropy
 
+
 # rigid rotor harmonic oscillator (RRHO) entropy evaluation - this is the default treatment
 def calc_rrho_entropy(frequency_wn, temperature, freq_scale_factor):
     """
@@ -317,6 +332,7 @@ def calc_rrho_entropy(frequency_wn, temperature, freq_scale_factor):
     entropy = [entry * GAS_CONSTANT / (math.exp(entry) - 1) - GAS_CONSTANT * math.log(1 - math.exp(-entry))
                 for entry in factor]
     return entropy
+
 
 # free rotor entropy evaluation - used for low frequencies below the cut-off if qh=grimme is specified
 def calc_freerot_entropy(frequency_wn, temperature, freq_scale_factor):
@@ -332,11 +348,13 @@ def calc_freerot_entropy(frequency_wn, temperature, freq_scale_factor):
     entropy = [(0.5 + math.log(entry**0.5)) * GAS_CONSTANT for entry in factor]
     return entropy
 
+
 # A damping function to interpolate between RRHO and free rotor vibrational entropy values
 def calc_damp(frequency_wn, FREQ_CUTOFF):
     alpha = 4
     damp = [1 / (1+(FREQ_CUTOFF/entry)**alpha) for entry in frequency_wn]
     return damp
+
 
 # The funtion to compute the "black box" entropy values (and all other thermochemical quantities)
 class calc_bbe:
@@ -475,28 +493,39 @@ class calc_bbe:
             self.gibbs_free_energy = self.enthalpy - temperature * self.entropy
             self.qh_gibbs_free_energy = self.enthalpy - temperature * self.qh_entropy
 
+
 def main():
     # Start a log for the results
     log = Logger("Goodvibes","dat", "output")
 
     # get command line inputs. Use -h to list all possible arguments and default values
     parser = OptionParser(usage="Usage: %prog [options] <input1>.log <input2>.log ...")
-    parser.add_option("-t", dest="temperature", action="store", help="temperature (K) (default 298.15)", default="298.15", type="float", metavar="TEMP")
-    parser.add_option("-q", dest="QH", action="store", help="Type of quasi-harmonic correction (Grimme or Truhlar) (default Grimme)", default="grimme", type="string", metavar="QH")
-    parser.add_option("-f", dest="freq_cutoff", action="store", help="Cut-off frequency (wavenumbers) (default = 100)", default="100.0", type="float", metavar="FREQ_CUTOFF")
-    parser.add_option("-c", dest="conc", action="store", help="concentration (mol/l) (default 1 atm)", default="0.040876", type="float", metavar="CONC")
-    parser.add_option("-v", dest="freq_scale_factor", action="store", help="Frequency scaling factor (default 1)", default=False, type="float", metavar="SCALE_FACTOR")
-    parser.add_option("-s", dest="solv", action="store", help="Solvent (H2O, toluene, DMF, AcOH, chloroform) (default none)", default="none", type="string", metavar="SOLV")
-    parser.add_option("--spc", dest="spc", action="store", help="Indicates single point corrections (default False)", type="string", default=False, metavar="SPC")
-    parser.add_option("--ti", dest="temperature_interval", action="store", help="initial temp, final temp, step size (K)", default=False, metavar="TI")
-    parser.add_option("--ci", dest="conc_interval", action="store", help="initial conc, final conc, step size (mol/l)", default=False, metavar="CI")
-    parser.add_option("--xyz", dest="xyz", action="store_true", help="write Cartesians to an xyz file (default False)", default=False, metavar="XYZ")
+    parser.add_option("-t", dest="temperature", action="store", default="298.15", type="float", metavar="TEMP",
+        help="temperature (K) (default 298.15)" )
+    parser.add_option("-q", dest="QH", action="store", default="grimme", type="string", metavar="QH",
+        help="Type of quasi-harmonic correction (Grimme or Truhlar) (default Grimme)" )
+    parser.add_option("-f", dest="freq_cutoff", action="store", default="100.0", type="float", metavar="FREQ_CUTOFF",
+        help="Cut-off frequency (wavenumbers) (default = 100)")
+    parser.add_option("-c", dest="conc", action="store", default="0.040876", type="float", metavar="CONC",
+        help="concentration (mol/l) (default 1 atm)")
+    parser.add_option("-v", dest="freq_scale_factor", action="store", default=False, type="float", metavar="SCALE_FACTOR",
+        help="Frequency scaling factor (default 1)")
+    parser.add_option("-s", dest="solv", action="store", default="none", type="string", metavar="SOLV",
+        help="Solvent (H2O, toluene, DMF, AcOH, chloroform) (default none)")
+    parser.add_option("--spc", dest="spc", action="store", type="string", default=False, metavar="SPC",
+        help="Indicates single point corrections (default False)")
+    parser.add_option("--ti", dest="temperature_interval", action="store", default=False, metavar="TI",
+         help="initial temp, final temp, step size (K)")
+    parser.add_option("--ci", dest="conc_interval", action="store", default=False, metavar="CI",
+        help="initial conc, final conc, step size (mol/l)")
+    parser.add_option("--xyz", dest="xyz", action="store_true", default=False, metavar="XYZ",
+        help="write Cartesians to an xyz file (default False)")
     options, args = parser.parse_args()
     options.QH = options.QH.lower() # case insensitive
 
     # if necessary create an xyz file for Cartesians
     if options.xyz == True:
-        xyz = XYZout("Goodvibes","xyz", "output")
+        xyz = XYZout("Goodvibes", "xyz", "output")
 
     # Get the filenames from the command line prompt
     files = []
@@ -636,6 +665,7 @@ def main():
     log.Finalize()
     if options.xyz == True:
         xyz.Finalize()
+
 
 if __name__ == "__main__":
     main()
