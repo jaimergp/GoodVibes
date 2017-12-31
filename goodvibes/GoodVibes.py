@@ -46,13 +46,19 @@ from optparse import OptionParser
 from .vib_scale_factors import scaling_data, scaling_refs
 
 # PHYSICAL CONSTANTS
-GAS_CONSTANT, PLANCK_CONSTANT, BOLTZMANN_CONSTANT, SPEED_OF_LIGHT, AVOGADRO_CONSTANT, AMU_to_KG, atmos = 8.3144621, 6.62606957e-34, 1.3806488e-23, 2.99792458e10, 6.0221415e23, 1.66053886E-27, 101.325
+GAS_CONSTANT = 8.3144621
+PLANCK_CONSTANT = 6.62606957e-34
+BOLTZMANN_CONSTANT = 1.3806488e-23
+SPEED_OF_LIGHT = 2.99792458e10
+AVOGADRO_CONSTANT = 6.0221415e23
+AMU_to_KG = 1.66053886E-27
+ATMOS = 101.325
 # UNIT CONVERSION
-j_to_au = 4.184 * 627.509541 * 1000.0
+J_TO_AU = 4.184 * 627.509541 * 1000.0
 
 # version number
 __version__ = "2.0.1"
-stars = "   " + "*" * 128
+STARS = "   " + "*" * 128
 
 # some literature references
 grimme_ref = "Grimme, S. Chem. Eur. J. 2012, 18, 9955-9964"
@@ -60,9 +66,14 @@ truhlar_ref = "Ribeiro, R. F.; Marenich, A. V.; Cramer, C. J.; Truhlar, D. G. J.
 goodvibes_ref = "Funes-Ardoiz, I.; Paton, R. S. (2016). GoodVibes: GoodVibes v1.0.2. http://doi.org/10.5281/zenodo.595246"
 
 #Some useful arrays
-periodictable = ["","H","He","Li","Be","B","C","N","O","F","Ne","Na","Mg","Al","Si","P","S","Cl","Ar","K","Ca","Sc","Ti","V","Cr","Mn","Fe","Co","Ni","Cu","Zn","Ga","Ge","As","Se","Br","Kr","Rb","Sr","Y","Zr",
-    "Nb","Mo","Tc","Ru","Rh","Pd","Ag","Cd","In","Sn","Sb","Te","I","Xe","Cs","Ba","La","Ce","Pr","Nd","Pm","Sm","Eu","Gd","Tb","Dy","Ho","Er","Tm","Yb","Lu","Hf","Ta","W","Re","Os","Ir","Pt","Au","Hg","Tl",
-    "Pb","Bi","Po","At","Rn","Fr","Ra","Ac","Th","Pa","U","Np","Pu","Am","Cm","Bk","Cf","Es","Fm","Md","No","Lr","Rf","Db","Sg","Bh","Hs","Mt","Ds","Rg","Uub","Uut","Uuq","Uup","Uuh","Uus","Uuo"]
+periodictable = ["", "H", "He", "Li", "Be", "B", "C", "N", "O", "F", "Ne", "Na", "Mg", "Al", "Si",
+    "P", "S", "Cl", "Ar", "K", "Ca", "Sc", "Ti", "V", "Cr", "Mn", "Fe", "Co", "Ni", "Cu", "Zn",
+    "Ga", "Ge", "As", "Se", "Br", "Kr", "Rb", "Sr", "Y", "Zr", "Nb", "Mo", "Tc", "Ru", "Rh", "Pd",
+    "Ag", "Cd", "In", "Sn", "Sb", "Te", "I", "Xe", "Cs", "Ba", "La", "Ce", "Pr", "Nd", "Pm", "Sm",
+    "Eu", "Gd", "Tb", "Dy", "Ho", "Er", "Tm", "Yb", "Lu", "Hf", "Ta", "W", "Re", "Os", "Ir", "Pt",
+    "Au", "Hg", "Tl", "Pb", "Bi", "Po", "At", "Rn", "Fr", "Ra", "Ac", "Th", "Pa", "U", "Np", "Pu",
+    "Am", "Cm", "Bk", "Cf", "Es", "Fm", "Md", "No", "Lr", "Rf", "Db", "Sg", "Bh", "Hs", "Mt", "Ds",
+    "Rg", "Uub", "Uut", "Uuq", "Uup", "Uuh", "Uus", "Uuo"]
 
 def elementID(massno):
     if massno < len(periodictable): return periodictable[massno]
@@ -389,14 +400,18 @@ class calc_bbe:
          else: ZPE, Urot, Uvib, Srot, h_Svib, qh_Svib = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 
          # Add terms (converted to au) to get Free energy - perform separately for harmonic and quasi-harmonic values out of interest
-         self.enthalpy = self.scf_energy + (Utrans + Urot + Uvib + GAS_CONSTANT * temperature) / j_to_au
+         self.enthalpy = self.scf_energy + (Utrans + Urot + Uvib + GAS_CONSTANT * temperature) / J_TO_AU
          # single point correction replaces energy from optimization with single point value
          if hasattr(self, 'sp_energy'):
             try: self.enthalpy = self.enthalpy - self.scf_energy + self.sp_energy
             except TypeError: pass
-         self.zpe = ZPE / j_to_au
-         self.entropy, self.qh_entropy = (Strans + Srot + h_Svib + Selec) / j_to_au, (Strans + Srot + qh_Svib + Selec) / j_to_au
-         self.gibbs_free_energy, self.qh_gibbs_free_energy = self.enthalpy - temperature * self.entropy, self.enthalpy - temperature * self.qh_entropy
+         self.zpe = ZPE / J_TO_AU
+
+         self.entropy = (Strans + Srot + h_Svib + Selec) / J_TO_AU
+         self.qh_entropy = (Strans + Srot + qh_Svib + Selec) / J_TO_AU
+
+         self.gibbs_free_energy = self.enthalpy - temperature * self.entropy
+         self.qh_gibbs_free_energy = self.enthalpy - temperature * self.qh_entropy
 
 def main():
    # Start a log for the results
@@ -439,7 +454,7 @@ def main():
       if options.temperature_interval == False: log.Write("   Temperature = "+str(options.temperature)+" Kelvin")
       # If not at standard temp, need to correct the molarity of 1 atmosphere (assuming Pressure is still 1 atm)
       if options.conc == 0.040876:
-          options.conc = atmos/(GAS_CONSTANT*options.temperature); log.Write("   Pressure = 1 atm")
+          options.conc = ATMOS/(GAS_CONSTANT*options.temperature); log.Write("   Pressure = 1 atm")
       else: log.Write("   Concentration = "+str(options.conc)+" mol/l")
 
       # attempt to automatically obtain frequency scale factor. Requires all outputs to be same level of theory
@@ -475,8 +490,8 @@ def main():
    if options.temperature_interval == False and options.conc_interval == False:
       if options.spc == False: log.Write("\n\n   " + '{:<39} {:>13} {:>10} {:>13} {:>10} {:>10} {:>13} {:>13}'.format("Structure", "E", "ZPE", "H", "T.S", "T.qh-S", "G(T)", "qh-G(T)"))
       else: log.Write("\n\n   " + '{:<39} {:>13} {:>13} {:>10} {:>13} {:>10} {:>10} {:>13} {:>13}'.format("Structure", "E_"+options.spc, "E", "ZPE", "H_"+options.spc, "T.S", "T.qh-S", "G(T)_"+options.spc, "qh-G(T)_"+options.spc))
-      if options.spc == False: log.Write("\n"+stars+"\n")
-      else: log.Write("\n"+stars+'*'*14+"\n")
+      if options.spc == False: log.Write("\n"+STARS+"\n")
+      else: log.Write("\n"+STARS+'*'*14+"\n")
 
       for file in files: # loop over the output files and compute thermochemistry
          bbe = calc_bbe(file, options.QH, options.freq_cutoff, options.temperature, options.conc, options.freq_scale_factor, options.solv, options.spc)
@@ -497,8 +512,8 @@ def main():
          else:
             if all(getattr(bbe, attrib) for attrib in ["enthalpy", "entropy", "qh_entropy", "gibbs_free_energy", "qh_gibbs_free_energy"]):
                 log.Write(' {:10.6f} {:13.6f} {:10.6f} {:10.6f} {:13.6f} {:13.6f}'.format(bbe.zpe, bbe.enthalpy, (options.temperature * bbe.entropy), (options.temperature * bbe.qh_entropy), bbe.gibbs_free_energy, bbe.qh_gibbs_free_energy))
-      if options.spc == False: log.Write("\n"+stars+"\n")
-      else: log.Write("\n"+stars+'*'*14+"\n")
+      if options.spc == False: log.Write("\n"+STARS+"\n")
+      else: log.Write("\n"+STARS+'*'*14+"\n")
 
    #Running a variable temperature analysis of the enthalpy, entropy and the free energy
    elif options.temperature_interval != False:
@@ -511,10 +526,10 @@ def main():
       log.Write("\n\n   " + '{:<39} {:>13} {:>24} {:>10} {:>10} {:>13} {:>13}'.format("Structure", "Temp/K", "H/au", "T.S/au", "T.qh-S/au", "G(T)/au", "qh-G(T)/au"))
 
       for file in files: # loop over the output files
-         log.Write("\n"+stars)
+         log.Write("\n"+STARS)
 
          for i in range(int(temperature_interval[0]), int(temperature_interval[1]+1), int(temperature_interval[2])): # run through the temperature range
-            temp, conc = float(i), atmos / GAS_CONSTANT / float(i)
+            temp, conc = float(i), ATMOS / GAS_CONSTANT / float(i)
             log.Write("\no  "+'{:<39} {:13.1f}'.format(os.path.basename(file), temp))
             bbe = calc_bbe(file, options.QH, options.freq_cutoff, temp, conc, options.freq_scale_factor, options.solv, options.spc)
 
@@ -522,7 +537,7 @@ def main():
             else:
                 if all(getattr(bbe, attrib) for attrib in ["enthalpy", "entropy", "qh_entropy", "gibbs_free_energy", "qh_gibbs_free_energy"]):
                     log.Write(' {:24.6f} {:10.6f} {:10.6f} {:13.6f} {:13.6f}'.format(bbe.enthalpy, (temp * bbe.entropy), (temp * bbe.qh_entropy), bbe.gibbs_free_energy, bbe.qh_gibbs_free_energy))
-         log.Write("\n"+stars+"\n")
+         log.Write("\n"+STARS+"\n")
 
    # close the log
    log.Finalize()
