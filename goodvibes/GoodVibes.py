@@ -1,33 +1,45 @@
-#!/usr/bin/python
-from __future__ import print_function
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-#######################################################################
-#                              GoodVibes.py                           #
-#  Evaluation of quasi-harmonic thermochemistry from Gaussian.        #
-#  Partion functions are evaluated from vibrational frequencies       #
-#  and rotational temperatures from the standard output.              #
-#  The rigid-rotor harmonic oscillator approximation is used as       #
-#  standard for all frequencies above a cut-off value. Below this,    #
-#  two treatments can be applied:                                     #
-#    (a) low frequencies are shifted to the cut-off value (as per     #
-#    Cramer-Truhlar)                                                  #
-#    (b) a free-rotor approximation is applied below the cut-off (as  #
-#    per Grimme). In this approach, a damping function interpolates   #
-#    between the RRHO and free-rotor entropy treatment of Svib to     #
-#    avoid a discontinuity.                                           #
-#  Both approaches avoid infinitely large values of Svib as wave-     #
-#  numbers tend to zero. With a cut-off set to 0, the results will be #
-#  identical to standard values output by the Gaussian program.       #
-#  The free energy can be evaluated for variable temperature,         #
-#  concentration, vibrational scaling factor, and with a haptic       #
-#  correction of the translational entropy in different solvents,     #
-#  according to the amount of free space available.                   #
 #######################################################################
 #######  Written by:  Rob Paton and Ignacio Funes-Ardoiz ##############
 #######  Last modified:   Dec 11, 2017 #################################
 #######################################################################
 
-import os.path, sys, math, textwrap, time
+"""
+GoodVibes.py
+------------
+
+Evaluation of quasi-harmonic thermochemistry from Gaussian.
+Partion functions are evaluated from vibrational frequencies
+and rotational temperatures from the standard output.
+The rigid-rotor harmonic oscillator approximation is used as
+standard for all frequencies above a cut-off value. Below this,
+two treatments can be applied:
+
+  (a) low frequencies are shifted to the cut-off value (as per
+  Cramer-Truhlar)
+
+  (b) a free-rotor approximation is applied below the cut-off (as
+  per Grimme). In this approach, a damping function interpolates
+  between the RRHO and free-rotor entropy treatment of Svib to
+  avoid a discontinuity.
+
+Both approaches avoid infinitely large values of Svib as wave-
+numbers tend to zero. With a cut-off set to 0, the results will be
+identical to standard values output by the Gaussian program.
+The free energy can be evaluated for variable temperature,
+concentration, vibrational scaling factor, and with a haptic
+correction of the translational entropy in different solvents,
+according to the amount of free space available.
+"""
+
+from __future__ import print_function
+import math
+import os
+import sys
+import textwrap
+import time
 from glob import glob
 from optparse import OptionParser
 

@@ -1,4 +1,8 @@
-# let guys could run Goodvibes by python -m goodvibes <args>
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+""" Let guys could run Goodvibes by python -m goodvibes <args> """
+
 # Copied from __main__.py in pip
 from __future__ import absolute_import
 
