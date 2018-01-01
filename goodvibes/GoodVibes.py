@@ -205,7 +205,8 @@ def level_of_theory(file):
 # translational energy evaluation (depends on temperature)
 def calc_translational_energy(temperature):
     """
-    Calculates the translational energy (J/mol) of an ideal gas - i.e. non-interactiing molecules so molar energy = Na * atomic energy
+    Calculates the translational energy (J/mol) of an ideal gas - i.e.
+    non-interactiing molecules so molar energy = Na * atomic energy
     This approximation applies to all energies and entropies computed within
     Etrans = 3/2 RT!
     """
@@ -253,10 +254,14 @@ def calc_zeropoint_energy(frequency_wn, freq_scale_factor):
     return sum(energy)
 
 
-# Computed the amount of accessible free space (ml per L) in solution accesible to a solute immersed in bulk solvent, i.e. this is the volume not occupied by solvent molecules, calculated using literature values for molarity and B3LYP/6-31G* computed molecular volumes.
+# Computed the amount of accessible free space (ml per L) in solution
+# accesible to a solute immersed in bulk solvent, i.e. this is the volume
+# not occupied by solvent molecules, calculated using literature values for
+# molarity and B3LYP/6-31G* computed molecular volumes.
 def get_free_space(solv):
     """
-    Calculates the free space in a litre of bulk solvent, based on Shakhnovich and Whitesides (J. Org. Chem. 1998, 63, 3821-3830)
+    Calculates the free space in a litre of bulk solvent, based on
+    Shakhnovich and Whitesides (J. Org. Chem. 1998, 63, 3821-3830)
     """
     solvent_list = ["none", "H2O", "toluene", "DMF", "AcOH", "chloroform"]
     molarity = [1.0, 55.6, 9.4, 12.9, 17.4, 12.5] #mol/l
@@ -281,7 +286,8 @@ def get_free_space(solv):
 # translational entropy evaluation (depends on mass, concentration, temperature, solvent free space: default = 1000.0)
 def calc_translational_entropy(molecular_mass, conc, temperature, solv):
     """
-    Calculates the translational entropic contribution (J/(mol*K)) of an ideal gas. Needs the molecular mass. Convert mass in amu to kg; conc in mol/l to number per m^3
+    Calculates the translational entropic contribution (J/(mol*K)) of an ideal gas.
+    Needs the molecular mass. Convert mass in amu to kg; conc in mol/l to number per m^3
     Strans = R(Ln(2pimkT/h^2)^3/2(1/C)) + 1 + 3/2)
     """
     lmda = ((2.0 * math.pi * molecular_mass * AMU_to_KG * BOLTZMANN_CONSTANT * temperature)**0.5) / PLANCK_CONSTANT
@@ -327,7 +333,8 @@ def calc_rotational_entropy(zpe, linear, symmno, rotemp, temperature):
 # rigid rotor harmonic oscillator (RRHO) entropy evaluation - this is the default treatment
 def calc_rrho_entropy(frequency_wn, temperature, freq_scale_factor):
     """
-    Entropic contributions (J/(mol*K)) according to a rigid-rotor harmonic-oscillator description for a list of vibrational modes
+    Entropic contributions (J/(mol*K)) according to a rigid-rotor harmonic-oscillator
+    description for a list of vibrational modes
     Sv = RSum(hv/(kT(e^(hv/KT)-1) - ln(1-e^(-hv/kT)))
     """
     factor = [PLANCK_CONSTANT * freq * SPEED_OF_LIGHT * freq_scale_factor / BOLTZMANN_CONSTANT / temperature
@@ -397,7 +404,8 @@ class calc_bbe:
                 # reset frequencies if in final freq link
                 if link == freqloc:
                     frequency_wn = []
-            # if spc specified will take last Energy from file, otherwise will break after freq calc
+            # if spc specified will take last Energy from file,
+            # otherwise will break after freq calc
             if link > freqloc:
                 break
 
@@ -483,7 +491,8 @@ class calc_bbe:
             else:
                 ZPE, Urot, Uvib, Srot, h_Svib, qh_Svib = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 
-            # Add terms (converted to au) to get Free energy - perform separately for harmonic and quasi-harmonic values out of interest
+            # Add terms (converted to au) to get Free energy - perform separately
+            # for harmonic and quasi-harmonic values out of interest
             self.enthalpy = self.scf_energy + (Utrans + Urot + Uvib + GAS_CONSTANT * temperature) / J_TO_AU
             # single point correction replaces energy from optimization with single point value
             if hasattr(self, 'sp_energy'):
@@ -617,7 +626,8 @@ def main():
             log.Write("\n"+STARS+'*'*14+"\n")
 
         for file in files: # loop over the output files and compute thermochemistry
-            bbe = calc_bbe(file, options.QH, options.freq_cutoff, options.temperature, options.conc, options.freq_scale_factor, options.solv, options.spc)
+            bbe = calc_bbe(file, options.QH, options.freq_cutoff, options.temperature,
+                           options.conc, options.freq_scale_factor, options.solv, options.spc)
 
             if options.xyz is True: # write Cartesians
                 xyzdata = getoutData(file)
