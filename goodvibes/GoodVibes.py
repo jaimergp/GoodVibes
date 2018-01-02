@@ -164,7 +164,7 @@ def sp_energy(file):
                 data = f.readlines()
             break
     else:
-        raise ValueError("File {} does not exist".format(file))
+        raise IOError("File {} does not exist".format(file))
 
     for line in data:
         if "Gaussian" in line:
@@ -377,12 +377,16 @@ class calc_bbe:
 
         # read any single point energies if requested
         if spc is not False and spc != 'link':
+            spc_file = '{0[0]}_{1}{0[1]}'.format(os.path.splitext(file), spc)
             try:
-                self.sp_energy = sp_energy('{0[0]}_{1}{0[1]}'.format(os.path.splitext(file), spc))
+                self.sp_energy = sp_energy(spc_file)
             except IOError:
+                self.sp_energy = 'N/A'
                 pass
-        if spc == 'link':
+        elif spc == 'link':
             self.sp_energy = sp_energy(file)
+        else:
+            self.sp_energy = 'N/A'
 
         #count number of links
         for line in g_output:
@@ -529,7 +533,9 @@ def main():
         choices=('H2O', 'toluene', 'DMF', 'AcOH', 'chloroform', 'none'),
         help="Solvent (H2O, toluene, DMF, AcOH, chloroform, none) (default none)")
     parser.add_argument("--spc", dest="spc", type=str, default=False, metavar="SPC",
-        help="Indicates single point corrections (default False)")
+        help="Indicates single point corrections (default False). Value must either 'link' to use the "
+             "SP energy in the same file, or a suffix to look for a different file (ie, use --spc SPC "
+             "to correct result.out with result_SPC.out.")
     parser.add_argument("--ti", dest="temperature_interval", default=False, metavar="TI",
         help="initial temp, final temp, step size (K)")
     parser.add_argument("--ci", dest="conc_interval", default=False, metavar="CI",
@@ -539,8 +545,8 @@ def main():
     parser.add_argument("--custom_ext", type=str, default='',
         help="List of additional file extensions to support, separated by commas (ie, '.qfi,.gaussian'). "
              "It can also be specified with environment variable GOODVIBES_CUSTOM_EXT")
+    parser.add_argument('files', nargs='+', metavar='FILE', help="File(s) to be processed.")
     options, args = parser.parse_known_args()
-    options.QH = options.QH.lower() # case insensitive
 
     # if necessary create an xyz file for Cartesians
     if options.xyz:
@@ -552,13 +558,17 @@ def main():
             SUPPORTED_EXTENSIONS.add(ext.strip())
 
     # Get the filenames from the command line prompt
-    files = []
-    for elem in args:
+    files, not_valid_files = [], []
+    for elem in options.files:
         _, ext =  os.path.splitext(elem)
         if ext in SUPPORTED_EXTENSIONS:
             for file in glob(elem):
                 if options.spc in (False, 'link') or '_'+options.spc+'.' not in file:
                     files.append(file)
+        else:
+            not_valid_files.append(elem)
+    if not files:
+        sys.exit("Could not find any valid files! Run goodvibes -h for usage help.")
 
     # Start printing results
     start = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
@@ -566,7 +576,7 @@ def main():
     # If not at standard temp, need to correct the molarity
     # of 1 atmosphere (assuming Pressure is still 1 atm)
     if options.conc == 0.040876:
-        options.conc = ATMOS / ( GAS_CONSTANT * options.temperature)
+        options.conc = ATMOS / (GAS_CONSTANT * options.temperature)
         log.Write("   Pressure = 1 atm")
     else:
         log.Write("   Concentration = {} mol/l".format(options.conc))
@@ -613,6 +623,9 @@ def main():
     if options.spc:
         log.Write("\n   Link job: combining final single point energy with thermal corrections")
 
+    if not_valid_files:
+        log.Write("\n\n   Warning! Found unvalid files during processing: "
+                  + textwrap.fill(', '.join(not_valid_files), 128, subsequent_indent='   '))
     # Standard mode: tabulate thermochemistry ouput from file(s) at a single temperature and concentration
     if options.temperature_interval is False and options.conc_interval is False:
         if not options.spc:
