@@ -578,8 +578,8 @@ def main():
         l_o_t = [level_of_theory(file) for file in files]
         # If all the files use the same level of theory
         if all(x == l_o_t[0] for x in l_o_t):
+            level = l_o_t[0].upper()
             for scal in scaling_data: # search through database of scaling factors
-                level = l_o_t[0].upper()
                 if scal['level'].upper() in level or scal['level'].replace("-", "").upper() in level:
                     options.freq_scale_factor = scal['zpe_fac']
                     ref = scaling_refs[scal['zpe_ref']]
