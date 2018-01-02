@@ -600,7 +600,7 @@ def main():
             log.Write("\n   " + textwrap.fill("CAUTION: different levels of theory found - " + '|'.join(l_o_t),
                                               128, subsequent_indent='   '))
 
-    log.Write("\n   Frequency scale factor = {}".format(options.freq_scale_factor))
+    log.Write("\n   Frequency scale factor = {:.3f}".format(options.freq_scale_factor))
 
     # checks to see whether the available free space of a requested solvent is defined
     freespace = get_free_space(options.solv)
