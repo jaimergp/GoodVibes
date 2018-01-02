@@ -43,7 +43,7 @@ import time
 from glob import glob
 from argparse import ArgumentParser
 
-from .vib_scale_factors import scaling_data, scaling_refs
+from .vib_scale_factors import scaling_data_dict, scaling_data_dict_mod, scaling_refs
 
 __version__ = "2.0.1"
 
@@ -579,12 +579,13 @@ def main():
         # If all the files use the same level of theory
         if all(x == l_o_t[0] for x in l_o_t):
             level = l_o_t[0].upper()
-            for scal in scaling_data: # search through database of scaling factors
-                if scal['level'].upper() in level or scal['level'].replace("-", "").upper() in level:
-                    options.freq_scale_factor = scal['zpe_fac']
-                    ref = scaling_refs[scal['zpe_ref']]
-                    log.Write("\n\n   Found vibrational scaling factor "
-                              "for {} level of theory\n   REF: {}".format(l_o_t[0], ref))
+            for data in (scaling_data_dict, scaling_data_dict_mod):
+                if level in data:
+                    options.freq_scale_factor = data[level].zpe_fac
+                    ref = scaling_refs[data[level].zpe_ref]
+                    log.Write("\n\n   Found vibrational scaling factor for {} level of theory\n"
+                              "   REF: {}".format(l_o_t[0], ref))
+                    break
         else:
             log.Write("\n   " + textwrap.fill("CAUTION: different levels of theory found - " + '|'.join(l_o_t),
                                               128, subsequent_indent='   '))
