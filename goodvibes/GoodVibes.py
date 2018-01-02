@@ -387,9 +387,9 @@ class calc_bbe:
         #count number of links
         for line in g_output:
             # only read first link + freq not other link jobs
-            if "Normal termination" in line :
+            if "Normal termination" in line:
                 linkmax += 1
-            if 'Frequencies --' in line :
+            if 'Frequencies --' in line:
                 freqloc = linkmax
 
         # Iterate over output
@@ -399,7 +399,7 @@ class calc_bbe:
             # link counter
             line = line.strip()
             fields = line.split()
-            if "Normal termination" in line :
+            if "Normal termination" in line:
                 link += 1
                 # reset frequencies if in final freq link
                 if link == freqloc:
