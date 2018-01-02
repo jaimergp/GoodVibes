@@ -183,7 +183,7 @@ def sp_energy(file):
     return spe
 
 
-# Read output for the level of theory and basis set used
+# Read output for the level of theory and basis set used (freq jobs only)
 def level_of_theory(file):
     with open(file) as f:
         data = f.readlines()
@@ -197,7 +197,7 @@ def level_of_theory(file):
                 pass
 
         # remove the restricted R or unrestricted U label
-        if level[0] == 'R' or level[0] == 'U':
+        if level[0] in ('R', 'U'):
             level = level[1:]
     return '/'.join([level, bs])
 
@@ -511,7 +511,7 @@ class calc_bbe:
 
 def main():
     # Start a log for the results
-    log = Logger("Goodvibes","dat", "output")
+    log = Logger("Goodvibes", "dat", "output")
 
     # get command line inputs. Use -h to list all possible arguments and default values
     parser = ArgumentParser()
@@ -523,8 +523,8 @@ def main():
         help="Cut-off frequency (wavenumbers) (default = 100)")
     parser.add_argument("-c", dest="conc", default=0.040876, type=float, metavar="CONC",
         help="concentration (mol/l) (default 1 atm)")
-    parser.add_argument("-v", dest="freq_scale_factor", default=1.0, type=float, metavar="SCALE_FACTOR",
-        help="Frequency scaling factor (default 1)")
+    parser.add_argument("-v", dest="freq_scale_factor", default=False, type=float, metavar="SCALE_FACTOR",
+        help="Frequency scaling factor. If not set, try to find a suitable value in database. If not found, use 1.0")
     parser.add_argument("-s", dest="solv", default="none", type=str, metavar="SOLV",
         choices=('H2O', 'toluene', 'DMF', 'AcOH', 'chloroform', 'none'),
         help="Solvent (H2O, toluene, DMF, AcOH, chloroform, none) (default none)")
@@ -543,40 +543,46 @@ def main():
     options.QH = options.QH.lower() # case insensitive
 
     # if necessary create an xyz file for Cartesians
-    if options.xyz is True:
+    if options.xyz:
         xyz = XYZout("Goodvibes", "xyz", "output")
+
     if options.custom_ext or os.environ.get('GOODVIBES_CUSTOM_EXT', ''):
         custom_extensions = options.custom_ext.split(',') + os.environ.get('GOODVIBES_CUSTOM_EXT', '').split(',')
         for ext in custom_extensions:
             SUPPORTED_EXTENSIONS.add(ext.strip())
+
     # Get the filenames from the command line prompt
     files = []
     for elem in args:
-        try:
-            if os.path.splitext(elem)[1] in SUPPORTED_EXTENSIONS:
-                for file in glob(elem):
-                    if options.spc is False or options.spc == 'link':
-                        files.append(file)
+        _, ext =  os.path.splitext(elem)
+        if ext in SUPPORTED_EXTENSIONS:
+            for file in glob(elem):
+                if options.spc in (False, 'link') or '_'+options.spc+'.' not in file:
+                    files.append(file)
 
-        # Start printing results
-        start = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
+    # Start printing results
+    start = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
     log.Write("   GoodVibes v{} {}\n   REF: {}\n\n".format(__version__, start, goodvibes_ref))
     # If not at standard temp, need to correct the molarity
     # of 1 atmosphere (assuming Pressure is still 1 atm)
-        if options.conc == 0.040876:
-            options.conc = ATMOS/(GAS_CONSTANT*options.temperature)
-            log.Write("   Pressure = 1 atm")
-        else:
+    if options.conc == 0.040876:
+        options.conc = ATMOS / ( GAS_CONSTANT * options.temperature)
+        log.Write("   Pressure = 1 atm")
+    else:
         log.Write("   Concentration = {} mol/l".format(options.conc))
 
-        # attempt to automatically obtain frequency scale factor. Requires all outputs to be same level of theory
-        if options.freq_scale_factor is False:
-            l_o_t = [level_of_theory(file) for file in files]
-            def all_same(items):
-                return all(x == items[0] for x in items)
-
-            if all_same(l_o_t) is True:
-                for scal in scaling_data: # search through database of scaling factors
+    # attempt to automatically obtain frequency scale factor.
+    # Requires all outputs to be same level of theory
+    if options.freq_scale_factor is False:
+        options.freq_scale_factor = 1.0  # if no scaling factor is found use 1.0
+        l_o_t = [level_of_theory(file) for file in files]
+        # If all the files use the same level of theory
+        if all(x == l_o_t[0] for x in l_o_t):
+            for scal in scaling_data: # search through database of scaling factors
+                level = l_o_t[0].upper()
+                if scal['level'].upper() in level or scal['level'].replace("-", "").upper() in level:
+                    options.freq_scale_factor = scal['zpe_fac']
+                    ref = scaling_refs[scal['zpe_ref']]
                     log.Write("\n\n   Found vibrational scaling factor "
                               "for {} level of theory\n   REF: {}".format(l_o_t[0], ref))
         else:
@@ -585,26 +591,26 @@ def main():
 
     log.Write("\n   Frequency scale factor = {}".format(options.freq_scale_factor))
 
-        # checks to see whether the available free space of a requested solvent is defined
-        freespace = get_free_space(options.solv)
-        if freespace != 1000.0:
+    # checks to see whether the available free space of a requested solvent is defined
+    freespace = get_free_space(options.solv)
+    if freespace != 1000.0:
         log.Write("\n   Specified solvent {}: free volume {:.3f} (mol/l) "
                   "corrects the translational entropy".format(options.solv, freespace/10.0))
 
-        # summary of the quasi-harmonic treatment; print out the relevant reference
+    # summary of the quasi-harmonic treatment; print out the relevant reference
     log.Write("\n\n   Quasi-harmonic treatment: frequency cut-off value"
               " of {} wavenumbers will be applied".format(options.freq_cutoff))
-        if options.QH == "grimme":
-            log.Write("\n   QH = Grimme: Using a mixture of RRHO and Free-rotor vibrational entropies")
-            qh_ref = grimme_ref
-        elif options.QH == "truhlar":
-            log.Write("\n   QH = Truhlar: Using an RRHO treatment where low frequencies are adjusted to the cut-off value")
-            qh_ref = truhlar_ref
-        log.Write("\n   REF: " + qh_ref)
+    if options.QH == "grimme":
+        log.Write("\n   QH = Grimme: Using a mixture of RRHO and Free-rotor vibrational entropies")
+        qh_ref = grimme_ref
+    elif options.QH == "truhlar":
+        log.Write("\n   QH = Truhlar: Using an RRHO treatment where low frequencies are adjusted to the cut-off value")
+        qh_ref = truhlar_ref
+    log.Write("\n   REF: " + qh_ref)
 
-        # whether linked single-point energies are to be used
-        if options.spc == "True":
-            log.Write("\n   Link job: combining final single point energy with thermal corrections")
+    # whether linked single-point energies are to be used
+    if options.spc:
+        log.Write("\n   Link job: combining final single point energy with thermal corrections")
 
     # Standard mode: tabulate thermochemistry ouput from file(s) at a single temperature and concentration
     if options.temperature_interval is False and options.conc_interval is False:
@@ -688,7 +694,7 @@ def main():
 
     # close the log
     log.Finalize()
-    if options.xyz is True:
+    if options.xyz:
         xyz.Finalize()
 
 
