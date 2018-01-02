@@ -87,7 +87,7 @@ def elementID(massno):
 # Enables output to terminal and to text file
 class Logger:
     def __init__(self, filein, suffix, append):
-        self.log = open(filein+"_"+append+"."+suffix, 'w' )
+        self.log = open('{}_{}.{}'.format(filein, append, suffix), 'w' )
 
     def Write(self, message):
         print(message, end='')
@@ -106,7 +106,7 @@ class Logger:
 # Enables output of optimized coordinates to a single xyz-formatted file
 class XYZout:
     def __init__(self, filein, suffix, append):
-        self.xyz = open(filein+"_"+append+"."+suffix, 'w' )
+        self.xyz = open('{}_{}.{}'.format(filein, append, suffix), 'w')
 
     def Writetext(self, message):
         self.xyz.write(message + "\n")
@@ -199,7 +199,7 @@ def level_of_theory(file):
         # remove the restricted R or unrestricted U label
         if level[0] == 'R' or level[0] == 'U':
             level = level[1:]
-    return level+"/"+bs
+    return '/'.join([level, bs])
 
 
 # translational energy evaluation (depends on temperature)
@@ -378,7 +378,7 @@ class calc_bbe:
         # read any single point energies if requested
         if spc is not False and spc != 'link':
             try:
-                self.sp_energy = sp_energy(file.split('.')[0]+'_'+spc+'.'+file.split('.')[1])
+                self.sp_energy = sp_energy('{0[0]}_{1}{0[1]}'.format(os.path.splitext(file), spc))
             except IOError:
                 pass
         if spc == 'link':
@@ -557,23 +557,17 @@ def main():
                 for file in glob(elem):
                     if options.spc is False or options.spc == 'link':
                         files.append(file)
-                    elif file.find('_'+options.spc+".") == -1:
-                        files.append(file)
-        except IndexError:
-            pass
 
         # Start printing results
         start = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
-        log.Write("   GoodVibes v" + __version__ + " " + start + "\n   REF: " + goodvibes_ref +"\n\n")
-
-        if options.temperature_interval is False:
-            log.Write("   Temperature = "+str(options.temperature)+" Kelvin")
-        # If not at standard temp, need to correct the molarity of 1 atmosphere (assuming Pressure is still 1 atm)
+    log.Write("   GoodVibes v{} {}\n   REF: {}\n\n".format(__version__, start, goodvibes_ref))
+    # If not at standard temp, need to correct the molarity
+    # of 1 atmosphere (assuming Pressure is still 1 atm)
         if options.conc == 0.040876:
             options.conc = ATMOS/(GAS_CONSTANT*options.temperature)
             log.Write("   Pressure = 1 atm")
         else:
-            log.Write("   Concentration = "+str(options.conc)+" mol/l")
+        log.Write("   Concentration = {} mol/l".format(options.conc))
 
         # attempt to automatically obtain frequency scale factor. Requires all outputs to be same level of theory
         if options.freq_scale_factor is False:
@@ -583,31 +577,29 @@ def main():
 
             if all_same(l_o_t) is True:
                 for scal in scaling_data: # search through database of scaling factors
-                    if l_o_t[0].upper().find(scal['level'].upper()) > -1 or l_o_t[0].upper().find(scal['level'].replace("-","").upper()) > -1:
-                        options.freq_scale_factor = scal['zpe_fac']; ref = scaling_refs[scal['zpe_ref']]
-                        log.Write("\n\n   " + "Found vibrational scaling factor for " + l_o_t[0] + " level of theory" + "\n   REF: " + ref)
-            elif all_same(l_o_t) is False:
-                log.Write("\n   " + (textwrap.fill("CAUTION: different levels of theory found - " + '|'.join(l_o_t), 128, subsequent_indent='   ')))
+                    log.Write("\n\n   Found vibrational scaling factor "
+                              "for {} level of theory\n   REF: {}".format(l_o_t[0], ref))
+        else:
+            log.Write("\n   " + textwrap.fill("CAUTION: different levels of theory found - " + '|'.join(l_o_t),
+                                              128, subsequent_indent='   '))
 
-        if options.freq_scale_factor is False:
-            options.freq_scale_factor = 1.0 # if no scaling factor is found use 1.0
-        log.Write("\n   Frequency scale factor "+str(options.freq_scale_factor))
+    log.Write("\n   Frequency scale factor = {}".format(options.freq_scale_factor))
 
         # checks to see whether the available free space of a requested solvent is defined
         freespace = get_free_space(options.solv)
         if freespace != 1000.0:
-            log.Write("\n   Specified solvent "+options.solv+": free volume "+str("%.3f" % (freespace/10.0))+" (mol/l) corrects the translational entropy")
+        log.Write("\n   Specified solvent {}: free volume {:.3f} (mol/l) "
+                  "corrects the translational entropy".format(options.solv, freespace/10.0))
 
         # summary of the quasi-harmonic treatment; print out the relevant reference
-        log.Write("\n\n   Quasi-harmonic treatment: frequency cut-off value of "+str(options.freq_cutoff)+" wavenumbers will be applied")
+    log.Write("\n\n   Quasi-harmonic treatment: frequency cut-off value"
+              " of {} wavenumbers will be applied".format(options.freq_cutoff))
         if options.QH == "grimme":
             log.Write("\n   QH = Grimme: Using a mixture of RRHO and Free-rotor vibrational entropies")
             qh_ref = grimme_ref
         elif options.QH == "truhlar":
             log.Write("\n   QH = Truhlar: Using an RRHO treatment where low frequencies are adjusted to the cut-off value")
             qh_ref = truhlar_ref
-        else:
-            log.Fatal("\n   FATAL ERROR: Unknown quasi-harmonic model "+options.QH+" specified (QH must = grimme or truhlar)")
         log.Write("\n   REF: " + qh_ref)
 
         # whether linked single-point energies are to be used
@@ -616,30 +608,31 @@ def main():
 
     # Standard mode: tabulate thermochemistry ouput from file(s) at a single temperature and concentration
     if options.temperature_interval is False and options.conc_interval is False:
-        if options.spc is False:
-            log.Write("\n\n   " + '{:<39} {:>13} {:>10} {:>13} {:>10} {:>10} {:>13} {:>13}'.format("Structure", "E", "ZPE", "H", "T.S", "T.qh-S", "G(T)", "qh-G(T)"))
-        else:
-            log.Write("\n\n   " + '{:<39} {:>13} {:>13} {:>10} {:>13} {:>10} {:>10} {:>13} {:>13}'.format("Structure", "E_"+options.spc, "E", "ZPE", "H_"+options.spc, "T.S", "T.qh-S", "G(T)_"+options.spc, "qh-G(T)_"+options.spc))
-        if options.spc is False:
+        if not options.spc:
+            log.Write("\n\n   {:<39} {:>13} {:>10} {:>13} {:>10} {:>10} {:>13} {:>13}".format(
+                      "Structure", "E", "ZPE", "H", "T.S", "T.qh-S", "G(T)", "qh-G(T)"))
             log.Write("\n"+STARS+"\n")
         else:
+            log.Write("\n\n   {:<39} {:>13} {:>13} {:>10} {:>13} {:>10} {:>10} {:>13} {:>13}".format(
+                      "Structure", "E_"+options.spc, "E", "ZPE", "H_"+options.spc, "T.S", "T.qh-S",
+                      "G(T)_"+options.spc, "qh-G(T)_"+options.spc))
             log.Write("\n"+STARS+'*'*14+"\n")
 
         for file in files: # loop over the output files and compute thermochemistry
             bbe = calc_bbe(file, options.QH, options.freq_cutoff, options.temperature,
                            options.conc, options.freq_scale_factor, options.solv, options.spc)
-
-            if options.xyz is True: # write Cartesians
+            name = os.path.splitext(os.path.basename(file))[0]
+            if options.xyz: # write Cartesians
                 xyzdata = getoutData(file)
                 xyz.Writetext(str(len(xyzdata.ATOMTYPES)))
                 if hasattr(bbe, "scf_energy"):
-                    xyz.Writetext('{:<39} {:>13} {:13.6f}'.format(os.path.splitext(os.path.basename(file))[0], 'Eopt', bbe.scf_energy))
+                    xyz.Writetext('{:<39} {:>13} {:13.6f}'.format(name, 'Eopt', bbe.scf_energy))
                 else:
-                    xyz.Writetext('{:<39}'.format(os.path.splitext(os.path.basename(file))[0]))
+                    xyz.Writetext('{:<39}'.format(name))
                 if hasattr(xyzdata, 'CARTESIANS') and hasattr(xyzdata, 'ATOMTYPES'):
                     xyz.Writecoords(xyzdata.ATOMTYPES, xyzdata.CARTESIANS)
 
-            log.Write("\no  "+'{:<39}'.format(os.path.splitext(os.path.basename(file))[0]))
+            log.Write("\no  "+'{:<39}'.format(name))
             if options.spc is not False:
                 try:
                     log.Write(' {:13.6f}'.format(bbe.sp_energy))
@@ -647,15 +640,19 @@ def main():
                     log.Write(' {:>13}'.format('----'))
             if hasattr(bbe, "scf_energy"):
                 log.Write(' {:13.6f}'.format(bbe.scf_energy))
-            if not hasattr(bbe,"gibbs_free_energy"):
+            if not hasattr(bbe, "gibbs_free_energy"):
                 log.Write("   Warning! Couldn't find frequency information ...")
             else:
-                if all(getattr(bbe, attrib) for attrib in ["enthalpy", "entropy", "qh_entropy", "gibbs_free_energy", "qh_gibbs_free_energy"]):
-                    log.Write(' {:10.6f} {:13.6f} {:10.6f} {:10.6f} {:13.6f} {:13.6f}'.format(bbe.zpe, bbe.enthalpy, (options.temperature * bbe.entropy), (options.temperature * bbe.qh_entropy), bbe.gibbs_free_energy, bbe.qh_gibbs_free_energy))
+                attrs = ["enthalpy", "entropy", "qh_entropy", "gibbs_free_energy", "qh_gibbs_free_energy"]
+                if all(getattr(bbe, attrib) for attrib in attrs):
+                    log.Write(' {:10.6f} {:13.6f} {:10.6f} {:10.6f} {:13.6f} {:13.6f}'.format(
+                              bbe.zpe, bbe.enthalpy, options.temperature * bbe.entropy,
+                              options.temperature * bbe.qh_entropy, bbe.gibbs_free_energy,
+                              bbe.qh_gibbs_free_energy))
         if options.spc is False:
-            log.Write("\n"+STARS+"\n")
+            log.Write("\n" + STARS + "\n")
         else:
-            log.Write("\n"+STARS+'*'*14+"\n")
+            log.Write("\n" + STARS + '*' * 14+ "\n")
 
     #Running a variable temperature analysis of the enthalpy, entropy and the free energy
     elif options.temperature_interval is not False:
@@ -664,24 +661,30 @@ def main():
         if len(temperature_interval) == 2:
             temperature_interval.append((temperature_interval[1]-temperature_interval[0])/10.0)
 
-        log.Write("\n\n   Variable-Temperature analysis of the enthalpy, entropy and the entropy at a constant pressure between")
-        log.Write("\n   T_init:  %.1f,  T_final:  %.1f,  T_interval: %.1f" % (temperature_interval[0], temperature_interval[1], temperature_interval[2]))
-        log.Write("\n\n   " + '{:<39} {:>13} {:>24} {:>10} {:>10} {:>13} {:>13}'.format("Structure", "Temp/K", "H/au", "T.S/au", "T.qh-S/au", "G(T)/au", "qh-G(T)/au"))
+        log.Write("\n\n   Variable-Temperature analysis of the enthalpy, entropy and the entropy"
+                  " at a constant pressure between")
+        log.Write("\n   T_init:  {:.1f},  T_final:  {:.1f},  T_interval: {:.1f}".format(*temperature_interval))
+        log.Write("\n\n   {:<39} {:>13} {:>24} {:>10} {:>10} {:>13} {:>13}".format(
+                  "Structure", "Temp/K", "H/au", "T.S/au", "T.qh-S/au", "G(T)/au", "qh-G(T)/au"))
 
         for file in files: # loop over the output files
-            log.Write("\n"+STARS)
-
-            for i in range(int(temperature_interval[0]), int(temperature_interval[1]+1), int(temperature_interval[2])): # run through the temperature range
+            log.Write("\n" + STARS)
+            # run through the temperature range
+            for i in range(int(temperature_interval[0]), int(temperature_interval[1]+1), int(temperature_interval[2])):
                 temp, conc = float(i), ATMOS / GAS_CONSTANT / float(i)
-                log.Write("\no  "+'{:<39} {:13.1f}'.format(os.path.basename(file), temp))
-                bbe = calc_bbe(file, options.QH, options.freq_cutoff, temp, conc, options.freq_scale_factor, options.solv, options.spc)
+                log.Write("\no  {:<39} {:13.1f}".format(os.path.basename(file), temp))
+                bbe = calc_bbe(file, options.QH, options.freq_cutoff, temp, conc,
+                               options.freq_scale_factor, options.solv, options.spc)
 
                 if not hasattr(bbe,"gibbs_free_energy"):
                     log.Write("Warning! Couldn't find frequency information ...\n")
                 else:
-                    if all(getattr(bbe, attrib) for attrib in ["enthalpy", "entropy", "qh_entropy", "gibbs_free_energy", "qh_gibbs_free_energy"]):
-                        log.Write(' {:24.6f} {:10.6f} {:10.6f} {:13.6f} {:13.6f}'.format(bbe.enthalpy, (temp * bbe.entropy), (temp * bbe.qh_entropy), bbe.gibbs_free_energy, bbe.qh_gibbs_free_energy))
-            log.Write("\n"+STARS+"\n")
+                    attrs = ["enthalpy", "entropy", "qh_entropy", "gibbs_free_energy", "qh_gibbs_free_energy"]
+                    if all(getattr(bbe, attrib) for attrib in attrs):
+                        log.Write(' {:24.6f} {:10.6f} {:10.6f} {:13.6f} {:13.6f}'.format(
+                                  bbe.enthalpy, temp * bbe.entropy, temp * bbe.qh_entropy,
+                                  bbe.gibbs_free_energy, bbe.qh_gibbs_free_energy))
+            log.Write("\n" + STARS + "\n")
 
     # close the log
     log.Finalize()
