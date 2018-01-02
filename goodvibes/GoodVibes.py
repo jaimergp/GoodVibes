@@ -521,7 +521,7 @@ def main():
     parser = ArgumentParser()
     parser.add_argument("-t", dest="temperature", default=298.15, type=float, metavar="TEMP",
         help="temperature (K) (default 298.15)" )
-    parser.add_argument("-q", dest="QH", default="grimme", type=str, metavar="QH", choices=('grimme', 'truhlar'),
+    parser.add_argument("-q", dest="QH", default="grimme", type=str.lower, metavar="QH", choices=('grimme', 'truhlar'),
         help="Type of quasi-harmonic correction (Grimme or Truhlar) (default Grimme)" )
     parser.add_argument("-f", dest="freq_cutoff", default=100.0, type=float, metavar="FREQ_CUTOFF",
         help="Cut-off frequency (wavenumbers) (default = 100)")
