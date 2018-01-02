@@ -16,5 +16,4 @@ setup(
   install_requires=["numpy", ],
   python_requires='>=2.6',
   include_package_data=True,
-
 )
